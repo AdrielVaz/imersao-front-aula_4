@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cenário Grande com Grade e Sidebar</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            cursor: grab;
+            background: black;
+        }
+        #container {
+            position: absolute;
+            width: 5000px; /* Cenário grande */
+            height: 5000px; /* Cenário grande */
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) scale(1); /* Começa no tamanho original */
+        }
+        .grass {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: url('grass.jpg') repeat; /* Imagem de fundo padrão */
+            background-size: 100px 100px;
+            z-index: 0;
+            transform-origin: center;
+            transition: background-image 0.5s ease-in-out; /* Transição suave */
+        }.horizontal {
+            transform: rotate(90deg);
+        }
+        .upside-down {
+            transform: rotate(180deg);
+        }
+        .rotated-270 {
+            transform: rotate(270deg);
+        }
+        .grid {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px; /* Tamanho das células do grid */
+            pointer-events: none; /* Permite que o grid não interfira com interações do mouse */
+            z-index: 1; /* Coloca o grid acima do cenário */
+        }
+        .character {
+            position: absolute;
+            width: 200px; /* Tamanho do personagem */
+            height: 200px;
+            cursor: grab;
+            z-index: 2; /* Coloca os personagens acima do grid */
+        }
+        #upload {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+        }
+        #controls {
+            position: fixed;
+            top: 50px;
+            left: 10px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            color: white;
+        }
+        #controls label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        #controls input {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        /* Estilos da Sidebar */
+        #sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 250px;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+        #sidebar h2 {
+            margin-top: 0;
+        }
+        #sidebar .object {
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            border-radius: 5px;
+            text-align: center;
+        }
+        #sidebar .object:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        /* Estilos do Leque de Opções */
+        .submenu {
+            display: none;
+            margin-top: 10px;
+            padding-left: 20px;
+        }
+        .submenu .suboption {
+            padding: 8px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .submenu .suboption:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .resizable {
+            resize: both;
+            overflow: auto;
+        }
+        /* Estilos do Menu de Contexto */
+        .context-menu {
+            display: none;
+            position: fixed; /* Usar fixed para garantir que o menu apareça no local correto */
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+        .context-menu div {
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .context-menu div:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        /* Estilos dos botões de troca de cenário */
+        #scene-controls {
+            position: fixed;
+            top: 10px;
+            right: 270px; /* Ajuste para não sobrepor a sidebar */
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            color: white;
+        }
+        #scene-controls button {
+            margin: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        /* Efeito de plantas se mexendo */
+        @keyframes sway {
+            0% { transform: rotate(-2deg); }
+            50% { transform: rotate(2deg); }
+            100% { transform: rotate(-2deg); }
+        }
+        .tree {
+            animation: sway 3s infinite ease-in-out;
+        }
+        #snowCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Para que o canvas não interfira nas interações */
+            z-index: 3; /* Coloca o canvas acima do cenário, mas abaixo dos personagens */
+        }
+        /* ... (restante do CSS) ... */
+        #snowCanvas, #plantCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Para que o canvas não interfira nas interações */
+            z-index: 3; /* Coloca o canvas acima do cenário, mas abaixo dos personagens */
+        }
+    </style>
+</head>
+<body>
+    <input type="file" id="upload" accept="image/*">
+    <div id="controls">
+        <label for="gridSizeX">Tamanho do Grid (px) - Eixo X:</label>
+        <input type="number" id="gridSizeX" min="10" max="200" value="50">
+        <label for="gridSizeY">Tamanho do Grid (px) - Eixo Y:</label>
+        <input type="number" id="gridSizeY" min="10" max="200" value="50">
+        <label for="gridOpacity">Opacidade do Grid:</label>
+        <input type="range" id="gridOpacity" min="0" max="1" step="0.1" value="0.1">
+    </div>
+    <div id="scene-controls">
+        <button onclick="changeBackground('grass.jpg')">Floresta</button>
+        <button onclick="changeBackground('neve.webp')">Neve</button>
+        <button onclick="changeBackground('autumn.jpg')">Outono</button>
+    </div>
+    <div id="sidebar">
+        <h2>Objetos</h2>
+        <div class="object" data-type="house">Casa</div>
+        <div class="submenu" id="house-submenu">
+            <div class="suboption" data-image="house1.png"><img src="house1.png" width="100" alt=""></div>
+            <div class="suboption" data-image="personagem.png"><img src="personagem.png" width="100" alt=""></div>
+            <div class="suboption" data-image="mapa.jpg">Casa 3</div>
+        </div>
+        <div class="object" data-type="road">Estrada</div>
+        <div class="submenu" id="road-submenu">
+            <div class="suboption" data-image="estrada1.jpg">Estrada 1</div>
+            <div class="suboption" data-image="estrada2.jpg">Estrada 2</div>
+        </div>
+        <div class="object" data-type="tree">Árvore</div>
+        <div class="submenu" id="tree-submenu">
+            <div class="suboption" data-image=""><img src="" width="100" alt=""></div>
+            <div class="suboption" data-image="arvore2.jpg">Árvore 2</div>
+        </div>
+        <div class="object" data-type="plantation">Plantação</div>
+        <div class="submenu" id="plantation-submenu">
+            <div class="suboption" data-image="mata.png"><img src="mata.png" alt="" width="100"></div>
+            <div class="suboption" data-image="plantacao2.jpg">Plantação 2</div>
+        </div>
+        <div id="size-inputs" style="display: none;">
+            <label for="width">Largura (px):</label>
+            <input type="number" id="width" min="10" max="1000" value="200">
+            <label for="height">Altura (px):</label>
+            <input type="number" id="height" min="10" max="1000" value="200">
+            <button id="add-object">Adicionar</button>
+        </div>
+    </div>
+    <div id="night-overlay" style="position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); pointer-events: none;"></div>
+    <div id="container">
+        <div class="grass"></div>
+        <div class="grass horizontal"></div>
+        <div class="grass upside-down"></div>
+        <div class="grid"></div>
+    </div>
+    <canvas id="snowCanvas"></canvas> <!-- Adicionando o canvas para a neve -->
+    <canvas id="plantCanvas"></canvas> <!-- Adicionando o canvas para as plantas -->
+    <!-- Menu de Contexto -->
+    <div id="context-menu" class="context-menu">
+        <div id="delete-object">Deletar</div>
+        <div id="move-object">Mover</div>
+        <div id="copy-object">Copiar</div>
+    </div>
+
+    <script>
+        // Função para mudar o cenário
+        function changeBackground(imageUrl) {
+            document.querySelector('.grass').style.backgroundImage = `url('${imageUrl}')`;
+            if (imageUrl === 'neve.webp') {
+                startSnow();
+                stopPlants();
+            } else {
+                stopSnow();
+                startPlants();
+            }
+        }
+
+        // Configurações do canvas de neve
+        const snowCanvas = document.getElementById('snowCanvas');
+        const snowCtx = snowCanvas.getContext('2d');
+        const snowflakes = [];
+        const maxSnowflakes = 100;
+
+        // Ajustar o tamanho do canvas
+        snowCanvas.width = window.innerWidth;
+        snowCanvas.height = window.innerHeight;
+
+        // Criar flocos de neve
+        function createSnowflakes() {
+            for (let i = 0; i < maxSnowflakes; i++) {
+                snowflakes.push({
+                    x: Math.random() * snowCanvas.width,
+                    y: Math.random() * snowCanvas.height,
+                    radius: Math.random() * 4 + 1,
+                    speed: Math.random() * 1 + 0.5
+                });
+            }
+        }
+
+        // Desenhar flocos de neve
+        function drawSnowflakes() {
+            snowCtx.clearRect(0, 0, snowCanvas.width, snowCanvas.height);
+            snowCtx.fillStyle = 'white';
+            snowflakes.forEach(snowflake => {
+                snowCtx.beginPath();
+                snowCtx.arc(snowflake.x, snowflake.y, snowflake.radius, 0, Math.PI * 2);
+                snowCtx.fill();
+            });
+        }
+
+        // Atualizar a posição dos flocos de neve
+        function updateSnowflakes() {
+            snowflakes.forEach(snowflake => {
+                snowflake.y += snowflake.speed;
+                if (snowflake.y > snowCanvas.height) {
+                    snowflake.y = 0; // Reseta a posição para o topo
+                    snowflake.x = Math.random() * snowCanvas.width; // Nova posição horizontal
+                }
+            });
+        }
+
+        // Loop de animação da neve
+        function animateSnow() {
+            drawSnowflakes();
+            updateSnowflakes();
+            requestAnimationFrame(animateSnow);
+        }
+
+        // Inicializar a neve
+        function startSnow() {
+            createSnowflakes();
+            animateSnow();
+        }
+
+        function stopSnow() {
+            snowflakes.length = 0; // Limpa os flocos de neve
+            snowCtx.clearRect(0, 0, snowCanvas.width, snowCanvas.height); // Limpa o canvas
+        }
+
+        // Configurações do canvas de plantas
+        const plantCanvas = document.getElementById('plantCanvas');
+        const plantCtx = plantCanvas.getContext('2d');
+        const plants = [];
+        const maxPlants = 50;
+
+        // Ajustar o tamanho do canvas de plantas
+        plantCanvas.width = window.innerWidth;
+        plantCanvas.height = window.innerHeight;
+
+        // Criar plantas
+        function createPlants() {
+            for (let i = 0; i < maxPlants; i++) {
+                plants.push({
+                    x: Math.random() * plantCanvas.width,
+                    y: Math.random() * plantCanvas.height,
+                    radius: Math.random() * 10 + 5,
+                    speed: Math.random() * 0.5 + 0.5
+                });
+            }
+        }
+
+        // Desenhar plantas
+        function drawPlants() {
+            plantCtx.clearRect(0, 0, plantCanvas.width, plantCanvas.height);
+            plantCtx.fillStyle = 'green';
+            plants.forEach(plant => {
+                plantCtx.beginPath();
+                plantCtx.arc(plant.x, plant.y, plant.radius, 0, Math.PI * 2);
+                plantCtx.fill();
+            });
+        }
+
+        // Atualizar a posição das plantas
+        function updatePlants() {
+            plants.forEach(plant => {
+                plant.y += plant.speed;
+                if (plant.y > plantCanvas.height) {
+                    plant.y = 0; // Reseta a posição para o topo
+                    plant.x = Math.random() * plantCanvas.width; // Nova posição horizontal
+                }
+            });
+        }
+
+        // Loop de animação das plantas
+        function animatePlants() {
+            drawPlants();
+            updatePlants();
+            requestAnimationFrame(animatePlants);
+        }
+
+        // Inicializar as plantas
+        function startPlants() {
+            createPlants();
+            animatePlants();
+        }
+
+        function stopPlants() {
+            plants.length = 0; // Limpa as plantas
+            plantCtx.clearRect(0, 0, plantCanvas.width, plantCanvas.height); // Limpa o canvas
+        }
+
+        // Inicializar a neve e as plantas
+        createSnowflakes();
+        createPlants();
+
+        // Restante do seu código JavaScript...
+        // (O código existente continua aqui)
+
+        let offsetX = 0, offsetY = 0; // Ajustando a posição inicial do cenário
+        let scale = 1; // Fator de zoom inicial
+        let currentCharacter = null;
+        let isDraggingScene = false;
+        let startX = 0, startY = 0;
+
+        const container = document.getElementById("container");
+        const grid = document.querySelector(".grid");
+        const gridSizeXInput = document.getElementById("gridSizeX");
+        const gridSizeYInput = document.getElementById("gridSizeY");
+        const gridOpacityInput = document.getElementById("gridOpacity");
+
+        container.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+
+        // Atualizar o grid quando o tamanho ou a opacidade mudar
+        gridSizeXInput.addEventListener("input", updateGrid);
+        gridSizeYInput.addEventListener("input", updateGrid);
+        gridOpacityInput.addEventListener("input", updateGrid);
+
+        function updateGrid() {
+            const sizeX = gridSizeXInput.value;
+            const sizeY = gridSizeYInput.value;
+            const opacity = gridOpacityInput.value;
+            grid.style.backgroundSize = `${sizeX}px ${sizeY}px`;
+            grid.style.backgroundImage = `
+                linear-gradient(to right, rgba(255, 255, 255, ${opacity}) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, ${opacity}) 1px, transparent 1px)`;
+        }
+
+        // Mostrar/ocultar subopções ao clicar em um objeto
+        const objects = document.querySelectorAll("#sidebar .object");
+        objects.forEach(object => {
+            object.addEventListener("click", () => {
+                const submenu = object.nextElementSibling;
+                if (submenu && submenu.classList.contains("submenu")) {
+                    submenu.style.display = submenu.style.display === "block" ? "none" : "block";
+                }
+            });
+        });
+
+        // Adicionar imagem ao cenário ao clicar em uma subopção
+        const suboptions = document.querySelectorAll(".suboption");
+        suboptions.forEach(suboption => {
+            suboption.addEventListener("click", () => {
+                const imageUrl = suboption.getAttribute("data-image");
+
+                // Capturar largura e altura do usuário
+                const width = prompt("Digite a largura do objeto (em pixels):");
+                const height = prompt("Digite a altura do objeto (em pixels):");
+
+                // Verificar se o usuário inseriu valores válidos
+                if (width && height && !isNaN(width) && !isNaN(height)) {
+                    const character = document.createElement("img");
+                    character.src = imageUrl;
+                    character.classList.add("character", "resizable"); // Adiciona a classe 'resizable'
+                    character.style.left = "2500px"; // Posição inicial no centro do cenário
+                    character.style.top = "2500px";
+                    character.style.width = `${width}px`; // Define a largura
+                    character.style.height = `${height}px`; // Define a altura
+                    container.appendChild(character);
+
+                    character.addEventListener("mousedown", startDragCharacter);
+                } else {
+                    alert("Por favor, insira valores válidos para largura e altura.");
+                }
+            });
+        });
+
+        // Mover cenário com o movimento do mouse
+        document.addEventListener("mousedown", (event) => {
+            if (event.target.classList.contains("character")) {
+                currentCharacter = event.target;
+                const rect = currentCharacter.getBoundingClientRect();
+                // Ajustando as coordenadas levando em conta o deslocamento do cenário e o zoom
+                startX = (event.clientX - offsetX) / scale - parseFloat(currentCharacter.style.left);
+                startY = (event.clientY - offsetY) / scale - parseFloat(currentCharacter.style.top);
+                document.addEventListener("mousemove", moveCharacter);
+                document.addEventListener("mouseup", stopDragCharacter);
+                return;
+            }
+
+            isDraggingScene = true;
+            startX = event.clientX;
+            startY = event.clientY;
+            document.body.style.cursor = "grabbing";
+        });
+
+        document.addEventListener("mousemove", (event) => {
+            if (isDraggingScene) {
+                offsetX += event.movementX;
+                offsetY += event.movementY;
+                container.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+            }
+
+            if (currentCharacter) {
+                // Ajusta a posição do personagem levando em conta o deslocamento e o zoom
+                let newX = (event.clientX - offsetX) / scale - startX;
+                let newY = (event.clientY - offsetY) / scale - startY;
+                currentCharacter.style.left = `${newX}px`;
+                currentCharacter.style.top = `${newY}px`;
+            }
+        });
+
+        document.addEventListener("mouseup", () => {
+            isDraggingScene = false;
+            currentCharacter = null;
+            document.body.style.cursor = "grab";
+            document.removeEventListener("mousemove", moveCharacter);
+            document.removeEventListener("mouseup", stopDragCharacter);
+        });
+
+        // Zoom do cenário com a roda do mouse
+        document.addEventListener("wheel", (event) => {
+            event.preventDefault(); // Evita o scroll da página
+
+            // Ajusta o fator de zoom
+            if (event.deltaY < 0) {
+                // Zoom in (a roda foi rolada para cima)
+                scale += 0.1;
+            } else {
+                // Zoom out (a roda foi rolada para baixo)
+                scale -= 0.1;
+                if (scale < 0.5) scale = 0.5; // Limite mínimo de zoom
+            }
+
+            // Aplica o zoom no cenário
+            container.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+        });
+
+        // Upload de personagens
+        document.getElementById("upload").addEventListener("change", function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const character = document.createElement("img");
+                    character.src = e.target.result;
+                    character.classList.add("character");
+                    character.style.left = "2500px"; // Posição inicial no centro do cenário
+                    character.style.top = "2500px";
+                    container.appendChild(character);
+
+                    character.addEventListener("mousedown", startDragCharacter);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Arrastar personagens
+        function startDragCharacter(event) {
+            event.stopPropagation(); // Impede que o clique afete o cenário
+            currentCharacter = event.target;
+            const rect = currentCharacter.getBoundingClientRect();
+            // Ajustando as coordenadas levando em conta o deslocamento do cenário e o zoom
+            startX = (event.clientX - offsetX) / scale - parseFloat(currentCharacter.style.left);
+            startY = (event.clientY - offsetY) / scale - parseFloat(currentCharacter.style.top);
+            document.addEventListener("mousemove", moveCharacter);
+            document.addEventListener("mouseup", stopDragCharacter);
+        }
+
+        function moveCharacter(event) {
+            if (!currentCharacter) return;
+            // Ajusta a posição do personagem levando em conta o deslocamento e o zoom
+            let newX = (event.clientX - offsetX) / scale - startX;
+            let newY = (event.clientY - offsetY) / scale - startY;
+            currentCharacter.style.left = `${newX}px`;
+            currentCharacter.style.top = `${newY}px`;
+        }
+
+        function stopDragCharacter() {
+            currentCharacter = null;
+            document.removeEventListener("mousemove", moveCharacter);
+            document.removeEventListener("mouseup", stopDragCharacter);
+        }
+
+        // Menu de Contexto
+        let selectedObject = null;
+
+        // Capturar clique direito nos objetos
+        document.addEventListener("contextmenu", (event) => {
+            if (event.target.classList.contains("character")) {
+                event.preventDefault(); // Impede o menu de contexto padrão
+                selectedObject = event.target;
+
+                // Posicionar o menu de contexto no local do clique
+                const contextMenu = document.getElementById("context-menu");
+                contextMenu.style.display = "block";
+                contextMenu.style.left = `${event.clientX}px`;
+                contextMenu.style.top = `${event.clientY}px`;
+            }
+        });
+
+        // Fechar o menu de contexto ao clicar fora dele
+        document.addEventListener("click", (event) => {
+            if (!event.target.closest(".context-menu")) {
+                const contextMenu = document.getElementById("context-menu");
+                contextMenu.style.display = "none";
+            }
+        });
+
+        // Deletar objeto
+        document.getElementById("delete-object").addEventListener("click", () => {
+            if (selectedObject) {
+                selectedObject.remove();
+                selectedObject = null;
+                document.getElementById("context-menu").style.display = "none"; // Fechar o menu
+            }
+        });
+
+        // Mover objeto (já implementado no seu código)
+        document.getElementById("move-object").addEventListener("click", () => {
+            if (selectedObject) {
+                startDragCharacter({ target: selectedObject });
+                document.getElementById("context-menu").style.display = "none"; // Fechar o menu
+            }
+        });
+
+        // Copiar objeto
+        document.getElementById("copy-object").addEventListener("click", () => {
+            if (selectedObject) {
+                const clone = selectedObject.cloneNode(true);
+                clone.style.left = `${parseFloat(selectedObject.style.left) + 50}px`; // Desloca um pouco para a direita
+                clone.style.top = `${parseFloat(selectedObject.style.top) + 50}px`; // Desloca um pouco para baixo
+                container.appendChild(clone);
+
+                // Adicionar eventos de arrastar ao clone
+                clone.addEventListener("mousedown", startDragCharacter);
+                document.getElementById("context-menu").style.display = "none"; // Fechar o menu
+            }
+        });
+    </script>
+</body>
+</html>
