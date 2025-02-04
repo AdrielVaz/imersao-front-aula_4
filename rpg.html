@@ -7,192 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cenário Grande com Grade e Sidebar</title>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            cursor: grab;
-            background: black;
-        }
-        #container {
-            position: absolute;
-            width: 5000px; /* Cenário grande */
-            height: 5000px; /* Cenário grande */
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%) scale(1); /* Começa no tamanho original */
-        }
-        .grass {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: url('grass.jpg') repeat; /* Imagem de fundo padrão */
-            background-size: 100px 100px;
-            z-index: 0;
-            transform-origin: center;
-            transition: background-image 0.5s ease-in-out; /* Transição suave */
-        }.horizontal {
-            transform: rotate(90deg);
-        }
-        .upside-down {
-            transform: rotate(180deg);
-        }
-        .rotated-270 {
-            transform: rotate(270deg);
-        }
-        .grid {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background-image:
-                linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
-            background-size: 50px 50px; /* Tamanho das células do grid */
-            pointer-events: none; /* Permite que o grid não interfira com interações do mouse */
-            z-index: 1; /* Coloca o grid acima do cenário */
-        }
-        .character {
-            position: absolute;
-            width: 200px; /* Tamanho do personagem */
-            height: 200px;
-            cursor: grab;
-            z-index: 2; /* Coloca os personagens acima do grid */
-        }
-        #upload {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            z-index: 10;
-        }
-        #controls {
-            position: fixed;
-            top: 50px;
-            left: 10px;
-            z-index: 10;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px;
-            border-radius: 5px;
-            color: white;
-        }
-        #controls label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        #controls input {
-            width: 100%;
-            margin-bottom: 10px;
-        }
-        /* Estilos da Sidebar */
-        #sidebar {
-            position: fixed;
-            top: 0;
-            right: 0;
-            width: 250px;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 20px;
-            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
-            z-index: 10;
-        }
-        #sidebar h2 {
-            margin-top: 0;
-        }
-        #sidebar .object {
-            padding: 10px;
-            margin: 5px 0;
-            background: rgba(255, 255, 255, 0.1);
-            cursor: pointer;
-            border-radius: 5px;
-            text-align: center;
-        }
-        #sidebar .object:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-        /* Estilos do Leque de Opções */
-        .submenu {
-            display: none;
-            margin-top: 10px;
-            padding-left: 20px;
-        }
-        .submenu .suboption {
-            padding: 8px;
-            margin: 5px 0;
-            background: rgba(255, 255, 255, 0.05);
-            cursor: pointer;
-            border-radius: 5px;
-            text-align: center;
-        }
-        .submenu .suboption:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-        .resizable {
-            resize: both;
-            overflow: auto;
-        }
-        /* Estilos do Menu de Contexto */
-        .context-menu {
-            display: none;
-            position: fixed; /* Usar fixed para garantir que o menu apareça no local correto */
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            z-index: 1000;
-        }
-        .context-menu div {
-            padding: 8px;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-        .context-menu div:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-        /* Estilos dos botões de troca de cenário */
-        #scene-controls {
-            position: fixed;
-            top: 10px;
-            right: 270px; /* Ajuste para não sobrepor a sidebar */
-            z-index: 10;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px;
-            border-radius: 5px;
-            color: white;
-        }
-        #scene-controls button {
-            margin: 5px;
-            padding: 5px 10px;
-            cursor: pointer;
-        }
-        /* Efeito de plantas se mexendo */
-        @keyframes sway {
-            0% { transform: rotate(-2deg); }
-            50% { transform: rotate(2deg); }
-            100% { transform: rotate(-2deg); }
-        }
-        .tree {
-            animation: sway 3s infinite ease-in-out;
-        }
-        #snowCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none; /* Para que o canvas não interfira nas interações */
-            z-index: 3; /* Coloca o canvas acima do cenário, mas abaixo dos personagens */
-        }
-        /* ... (restante do CSS) ... */
-        #snowCanvas, #plantCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none; /* Para que o canvas não interfira nas interações */
-            z-index: 3; /* Coloca o canvas acima do cenário, mas abaixo dos personagens */
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <input type="file" id="upload" accept="image/*">
@@ -205,32 +20,32 @@
         <input type="range" id="gridOpacity" min="0" max="1" step="0.1" value="0.1">
     </div>
     <div id="scene-controls">
-        <button onclick="changeBackground('grass.jpg')">Floresta</button>
-        <button onclick="changeBackground('neve.webp')">Neve</button>
-        <button onclick="changeBackground('autumn.jpg')">Outono</button>
+        <button onclick="changeBackground('Assets/grass.jpg')">Floresta</button>
+        <button onclick="changeBackground('Assets/neve.webp')">Neve</button>
+        <button onclick="changeBackground('Assets/autumn.jpg')">Outono</button>
     </div>
     <div id="sidebar">
         <h2>Objetos</h2>
         <div class="object" data-type="house">Casa</div>
         <div class="submenu" id="house-submenu">
-            <div class="suboption" data-image="house1.png"><img src="house1.png" width="100" alt=""></div>
-            <div class="suboption" data-image="personagem.png"><img src="personagem.png" width="100" alt=""></div>
-            <div class="suboption" data-image="mapa.jpg">Casa 3</div>
+            <div class="suboption" data-image="Assets/house1.png"><img src="house1.png" width="100" alt=""></div>
+            <div class="suboption" data-image="Assets/personagem.png"><img src="personagem.png" width="100" alt=""></div>
+            <div class="suboption" data-image="Assets/mapa.jpg">Casa 3</div>
         </div>
         <div class="object" data-type="road">Estrada</div>
         <div class="submenu" id="road-submenu">
-            <div class="suboption" data-image="estrada1.jpg">Estrada 1</div>
-            <div class="suboption" data-image="estrada2.jpg">Estrada 2</div>
+            <div class="suboption" data-image="Assets/estrada1.jpg">Estrada 1</div>
+            <div class="suboption" data-image="Assets/estrada2.jpg">Estrada 2</div>
         </div>
         <div class="object" data-type="tree">Árvore</div>
         <div class="submenu" id="tree-submenu">
             <div class="suboption" data-image=""><img src="" width="100" alt=""></div>
-            <div class="suboption" data-image="arvore2.jpg">Árvore 2</div>
+            <div class="suboption" data-image="Assets/arvore2.jpg">Árvore 2</div>
         </div>
         <div class="object" data-type="plantation">Plantação</div>
         <div class="submenu" id="plantation-submenu">
-            <div class="suboption" data-image="mata.png"><img src="mata.png" alt="" width="100"></div>
-            <div class="suboption" data-image="plantacao2.jpg">Plantação 2</div>
+            <div class="suboption" data-image="Assets/mata.png"><img src="mata.png" alt="" width="100"></div>
+            <div class="suboption" data-image="Assets/plantacao2.jpg">Plantação 2</div>
         </div>
         <div id="size-inputs" style="display: none;">
             <label for="width">Largura (px):</label>
